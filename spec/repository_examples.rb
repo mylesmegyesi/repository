@@ -1,5 +1,7 @@
 require 'time'
 
+SECONDS_IN_DAY = 24 * 60 * 60
+
 shared_examples_for 'repository' do |model_klass, repo_options|
   let(:repo) { described_class.new(model_klass, repo_options) }
 
@@ -102,7 +104,8 @@ shared_examples_for 'repository' do |model_klass, repo_options|
     end
 
     it 'raises an exception if the record does not exist' do
-      record = model_klass.new(name: 'Sally', id: 1)
+      record = model_klass.new(name: 'Sally')
+      record.id = 1
       expect {repo.update!(record)}.to raise_error(ArgumentError, 'Could not update record with id: 1 because it does not exist')
     end
   end
@@ -117,7 +120,8 @@ shared_examples_for 'repository' do |model_klass, repo_options|
     end
 
     it 'raises an exception if the record does not exist' do
-      record = model_klass.new(name: 'Sally', id: 1)
+      record = model_klass.new(name: 'Sally')
+      record.id = 1
       expect {repo.remove!(record)}.to raise_error(ArgumentError, 'Could not remove record with id: 1 because it does not exist')
     end
   end
@@ -422,8 +426,6 @@ shared_examples_for 'repository' do |model_klass, repo_options|
         raise_error(ArgumentError, "Exclusion filter value must respond to to_a but #{PP.pp(19, '')} does not")
     end
   end
-
-  SECONDS_IN_DAY = 24 * 60 * 60
 
   def days_ago(days)
     Time.now.utc - (days * SECONDS_IN_DAY)

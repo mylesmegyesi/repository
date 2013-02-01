@@ -16,6 +16,7 @@ module Repository
       clean_attrs = (attrs || {}).reject {|k, v| blacklist_update_attrs.include?(k)}
       updated_attrs = old_model.to_h.merge(model.to_h).merge(clean_attrs).merge(updated_at: Time.now.utc)
       new_model = model_klass.new(updated_attrs)
+      new_model.id = model.id
       store_record!(new_model.to_h)
       find_by_id(model.id)
     end

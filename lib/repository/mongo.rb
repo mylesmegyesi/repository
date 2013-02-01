@@ -92,7 +92,7 @@ module Repository
 
     def store_record!(record)
       if _id = record.delete(:id)
-        collection.update({'_id' => BSON::ObjectId(_id)}, record)
+        collection.update({'_id' => BSON::ObjectId(_id)}, {'$set' => record})
       else
         collection.insert(record).to_s
       end
