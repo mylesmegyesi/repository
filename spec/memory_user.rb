@@ -10,5 +10,8 @@ class MemoryUser
   attribute :created_at,  Time
   attribute :updated_at,  Time
 
-  alias :to_h :attributes
+  def ==(other)
+    self.attributes == other.attributes
+  end
+
 end

@@ -1,5 +1,6 @@
 require 'repository/filter'
 require 'repository/sort'
+require 'repository/filter_factory'
 
 module Repository
   class Cursor
@@ -7,62 +8,56 @@ module Repository
     def initialize(query_executor)
       @query_executor = query_executor
       @filters = []
-      @sorts = []
-      @limit = nil
-      @offset = nil
+      @sorts   = []
     end
 
     def eq(field, value)
-      assert_field!(field)
-      @filters << Filter.new(field, '=', value)
+      @filters << filter_factory.eq(field, value)
       self
     end
 
     def not_eq(field, value)
-      assert_field!(field)
-      @filters << Filter.new(field, '!=', value)
+      @filters << filter_factory.not_eq(field, value)
       self
     end
 
     def lt(field, value)
-      assert_field!(field)
-      assert_not_nil!('Less than', value)
-      @filters << Filter.new(field, '<', value)
+      @filters << filter_factory.lt(field, value)
       self
     end
 
     def lte(field, value)
-      assert_field!(field)
-      assert_not_nil!('Less than or equal to', value)
-      @filters << Filter.new(field, '<=', value)
+      @filters << filter_factory.lte(field, value)
       self
     end
 
     def gt(field, value)
-      assert_field!(field)
-      assert_not_nil!('Greater than', value)
-      @filters << Filter.new(field, '>', value)
+      @filters << filter_factory.gt(field, value)
       self
     end
 
     def gte(field, value)
-      assert_field!(field)
-      assert_not_nil!('Greater than or equal to', value)
-      @filters << Filter.new(field, '>=', value)
+      @filters << filter_factory.gte(field, value)
       self
     end
 
     def in(field, value)
-      assert_field!(field)
-      assert_to_a!('Inclusion', value)
-      @filters << Filter.new(field, 'in', value.to_a)
+      @filters << filter_factory.in(field, value)
       self
     end
 
     def not_in(field, value)
-      assert_field!(field)
-      assert_to_a!('Exclusion', value)
-      @filters << Filter.new(field, '!in', value.to_a)
+      @filters << filter_factory.not_in(field, value)
+      self
+    end
+
+    def like(field, value)
+      @filters << filter_factory.like(field, value)
+      self
+    end
+
+    def or(*filters)
+      @filters << filter_factory.or(*filters)
       self
     end
 
@@ -97,10 +92,6 @@ module Repository
       query_executor.execute_find(query)
     end
 
-    def remove!
-      query_executor.execute_remove!(query)
-    end
-
     def first
       query_executor.execute_find(
         query.merge(
@@ -117,12 +108,20 @@ module Repository
         )).first
     end
 
-    private
+    def remove!
+      query_executor.execute_remove!(query)
+    end
 
-    attr_reader :query_executor
+    def first
+      query_executor.execute_find(
+        query.merge(
+          limit: 1
+        )).first
+    end
 
     def query
       {
+        :type    => @type,
         :filters => @filters,
         :sorts   => @sorts,
         :offset  => @offset,
@@ -130,12 +129,16 @@ module Repository
       }
     end
 
+    private
+
+    attr_reader :query_executor
+
+    def filter_factory
+      @filter_factory ||= FilterFactory.new
+    end
+
     def sorts_for_first
-      if @sorts.empty?
-        [Sort.new(:created_at, :desc)]
-      else
-        @sorts
-      end
+      @sorts
     end
 
     def sorts_for_last
@@ -147,18 +150,6 @@ module Repository
     def assert_field!(field)
       unless field.is_a?(String) || field.is_a?(Symbol)
         raise ArgumentError.new "Field name must be a String or Symbol but you gave #{PP.pp(field, '')}"
-      end
-    end
-
-    def assert_not_nil!(name, value)
-      if value.nil?
-        raise ArgumentError.new "#{name} filter value cannot be nil"
-      end
-    end
-
-    def assert_to_a!(name, value)
-      unless value.respond_to?(:to_a)
-        raise ArgumentError.new "#{name} filter value must respond to to_a but #{PP.pp(value, '')} does not"
       end
     end
 

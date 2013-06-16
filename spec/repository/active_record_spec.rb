@@ -1,16 +1,13 @@
 require 'database_cleaner'
 require 'repository/active_record'
+require 'memory_user'
 require 'repository_examples'
 
 class ARUser < ActiveRecord::Base
   self.table_name = 'users'
 
-  def to_h
-    attributes.with_indifferent_access
-  end
-
   def ==(other)
-    self.to_h == other.to_h
+    self.attributes == other.attributes
   end
 end
 
@@ -34,7 +31,8 @@ describe Repository::ActiveRecord do
     DatabaseCleaner.clean
   end
 
-  it_behaves_like 'repository', ARUser, {}
+  it_behaves_like 'repository', ARUser, MemoryUser, {domain_model_klass: MemoryUser}
+  it_behaves_like 'repository', ARUser, ARUser, {}
 end
 
 
